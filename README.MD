@@ -1,8 +1,7 @@
-# LNN SageMaker Algorithm
-The [Time Series Forecasting (LNN) Algorithm from AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-7s4giphluwgta) performs time series forecasting with Liquid Neural Networks (LNNs). 
-It implements both training and inference from CSV data and supports both CPU and GPU instances. 
+# Liquid Neural Networks (LNNs) SageMaker Algorithm
+The algorithm implements both training and inference from CSV data and supports both CPU and GPU instances. 
 The training and inference Docker images were built by extending the PyTorch 2.1.0 Python 3.10 SageMaker containers. 
-The Docker images include software licensed under the [Apache License 2.0](https://github.com/fg-research/lnn-sagemaker/blob/master/LICENSE.txt).
+The Docker images include software licensed under the [Apache License 2.0](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/LICENSE.txt).
 The algorithm can be used for both univariate and multivariate time series and supports the inclusion of external features.
 
 ## Model Description
@@ -25,7 +24,7 @@ The head of the $g$ and $h$ neural networks is a fully-connected layer with hype
 The head of the $f$ neural network is an affine function $b + a(\Delta t)$ where $\Delta t$ is the time span (or time increment) between consecutive time steps 
 while the intercept $b$ and slope $a$ are the outputs of two fully-connected layers with linear activation.
 
-<img src=https://fg-research-assets.s3.eu-west-1.amazonaws.com/cfc-diagram.png style="width:100%;margin-top:60px;margin-bottom:50px"/>
+<img src=https://flaviagiammarino-assets.s3.eu-west-1.amazonaws.com/cfc-diagram.png style="width:100%;margin-top:60px;margin-bottom:50px"/>
 
 *CfC architecture (source: [doi:10.1038/s42256–022–00556–7](https://doi.org/10.1038/s42256-022-00556-7))*
 
@@ -50,8 +49,8 @@ If the features are not provided, the algorithm will only use the past values of
 If the time spans are not provided, the algorithm will assume that the observations are equally spaced.
 The time series are scaled internally by the algorithm, there is no need to scale the time series beforehand.
 
-See the sample input files [`train.csv`](https://github.com/fg-research/lnn-sagemaker/blob/master/data/training/train.csv) and [`valid.csv`](https://github.com/fg-research/lnn-sagemaker/blob/master/data/training/valid.csv).
-See [`notebook.ipynb`](https://github.com/fg-research/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a training job.
+See the sample input files [`train.csv`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/data/training/train.csv) and [`valid.csv`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/data/training/valid.csv).
+See [`notebook.ipynb`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a training job.
 
 #### Distributed Training
 The algorithm supports multi-GPU training on a single instance, which is implemented through [torch.nn.DataParallel](https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html).
@@ -89,12 +88,12 @@ If the `validation` channel is provided, the training algorithm also logs the fo
 - `valid_mse`: `float`. Validation mean squared error.
 - `valid_mae`: `float`. Validation mean absolute error.
 
-See [`notebook.ipynb`](https://github.com/fg-research/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a hyperparameter tuning job.
+See [`notebook.ipynb`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a hyperparameter tuning job.
 
 ### Inference
 The inference algorithm takes as input a CSV file containing the time series.
 The CSV file should have the same format and columns as the one used for training.
-See the sample input file [`test.csv`](https://github.com/fg-research/lnn-sagemaker/blob/master/data/inference/input/test.csv).
+See the sample input file [`test.csv`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/data/inference/input/test.csv).
 
 The inference algorithm outputs the predicted values of the time series and the standard deviation of the predictions. 
 
@@ -109,15 +108,13 @@ b) The outputs include the out-of-sample forecasts beyond the last time step of 
 For instance, if the number of input samples is 500, and the `prediction-length` is 100, 
 then the output CSV file will contain 600 samples, where the last 100 samples are the out-of-sample forecasts.  
 
-See the sample output files [`batch_predictions.csv`](https://github.com/fg-research/lnn-sagemaker/blob/master/data/inference/output/batch/batch_predictions.csv) and [`real_time_predictions.csv`](https://github.com/fg-research/lnn-sagemaker/blob/master/data/inference/output/real-time/real_time_predictions.csv).
-See [`notebook.ipynb`](https://github.com/fg-research/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a batch transform job.
+See the sample output files [`batch_predictions.csv`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/data/inference/output/batch/batch_predictions.csv) and [`real_time_predictions.csv`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/data/inference/output/real-time/real_time_predictions.csv).
+See [`notebook.ipynb`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to launch a batch transform job.
 
 #### Endpoints
 The algorithm supports only real-time inference endpoints. The inference image is too large to be uploaded to a serverless inference endpoint.
 
-See [`notebook.ipynb`](https://github.com/fg-research/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to deploy the model to an endpoint, invoke the endpoint and process the response.
-
-**Additional Resources:** [[Sample Notebook]](https://github.com/fg-research/lnn-sagemaker/blob/master/notebook.ipynb) [[Blog Post]](https://fg-research.com/blog/product/posts/lnn-equity-forecasting.html)
+See [`notebook.ipynb`](https://github.com/flaviagiammarino/lnn-sagemaker/blob/master/notebook.ipynb) for an example of how to deploy the model to an endpoint, invoke the endpoint and process the response.
 
 ## References
 - R. Hasani, M. Lechner, A. Amini, D. Rus and R. Grosu, "Liquid time-constant networks", in *Proceedings of the AAAI Conference on Artificial Intelligence*, vol. 35, no. 9, pp. 7657-7666, 2021, [doi: 10.1609/aaai.v35i9.16936](https://doi.org/10.1609/aaai.v35i9.16936).
