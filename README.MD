@@ -49,7 +49,7 @@ If the time spans are not provided, the algorithm will assume that the observati
 The time series are scaled internally by the algorithm, there is no need to scale the time series beforehand.
 
 #### Distributed Training
-The algorithm supports multi-GPU training on a single instance, which is implemented through [torch.nn.DataParallel](https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html).
+The algorithm supports multi-GPU training on a single instance.
 The algorithm does not support multi-node (or distributed) training across multiple instances. 
 
 #### Incremental Training
