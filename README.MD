@@ -67,7 +67,7 @@ The training algorithm takes as input the following hyperparameters:
 - `backbone-dropout`: `float`. The dropout rate of the backbone neural network.
 - `hidden-size`: `int`. The number of hidden units of the neural network heads.
 - `minimal`: `bool`. If set to 1, the model will use the CfC direct solution.
-- `no-gate`: `bool`. If set to 1, the model will use a CfC without the (1 - sigmoid) part.
+- `no-gate`: `bool`. If set to 1, the model will use a CfC without the $[1 - \sigma(.)]$ part.
 - `use-ltc`: `bool`. If set to 1, the model will use an LTC instead of a CfC.
 - `use-mixed`: `bool`. If set to 1, the model will mix the CfC RNN-state with an LSTM.
 - `lr`: `float`. The learning rate used for training.
