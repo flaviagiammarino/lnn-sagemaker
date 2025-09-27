@@ -1,19 +1,4 @@
-# Copyright 2019-2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"). You
-# may not use this file except in compliance with the License. A copy of
-# the License is located at
-#
-#     http://aws.amazon.com/apache2.0/
-#
-# or in the "license" file accompanying this file. This file is
-# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-# ANY KIND, either express or implied. See the License for the specific
-# language governing permissions and limitations under the License.
-from __future__ import absolute_import
-
 import warnings
-
 warnings.filterwarnings("ignore")
 
 import os
@@ -25,7 +10,7 @@ import torch
 from sagemaker_inference import default_inference_handler
 from sagemaker_pytorch_serving_container.modules import Model
 
-# extract the environment configuration
+# Extract the environment configuration
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 use_data_parallel = torch.cuda.device_count() > 1
 kwargs = {"num_workers": 1, "pin_memory": True} if torch.cuda.is_available() else {}
@@ -51,7 +36,13 @@ class Dataset(torch.utils.data.Dataset):
         ]
 
 
-def _get_test_dataloader(data, timespans, input_length, output_length, **kwargs):
+def get_test_dataloader(
+    data,
+    timespans,
+    input_length,
+    output_length,
+    **kwargs
+):
     '''
     Build the dataloader using the custom dataset.
     '''
@@ -98,7 +89,7 @@ class DefaultPytorchInferenceHandler(default_inference_handler.DefaultInferenceH
         '''
         Generate the predictions.
         '''
-        # extract the inputs
+        # Extract the input parameters
         if use_data_parallel:
             timespan_names = model.module.timespan_names
             input_names = model.module.input_names
@@ -119,21 +110,21 @@ class DefaultPytorchInferenceHandler(default_inference_handler.DefaultInferenceH
             output_length = model.output_length
             num_inputs = model.num_inputs
             num_outputs = model.num_outputs
-
-        # extract the timespans
+        
+        # Extract the timespans
         if len(timespan_names):
             timespans = data.loc[:, timespan_names].values
         else:
             timespans = None
         
-        # reorder the columns
+        # Reorder the columns
         data = data[input_names + output_names].values
         
-        # scale the data
+        # Scale the data
         data = (data - min_) / (max_ - min_)
         
-        # create the dataloader
-        dataloader = _get_test_dataloader(
+        # Create the dataloader
+        dataloader = get_test_dataloader(
             data,
             timespans,
             input_length,
@@ -141,7 +132,7 @@ class DefaultPytorchInferenceHandler(default_inference_handler.DefaultInferenceH
             **kwargs
         )
         
-        # generate the model predictions
+        # Generate the model predictions
         mu = torch.from_numpy(np.nan * np.ones((input_length, num_outputs))).float().to(device)
         sigma = torch.from_numpy(np.nan * np.ones((input_length, num_outputs))).float().to(device)
         for t, x in dataloader:
@@ -150,12 +141,12 @@ class DefaultPytorchInferenceHandler(default_inference_handler.DefaultInferenceH
                 mu_, sigma_ = model(x, t)
             mu = torch.cat([mu, mu_.reshape(mu_.size(0) * mu_.size(1), mu_.size(2))], dim=0)
             sigma = torch.cat([sigma, sigma_.reshape(sigma_.size(0) * sigma_.size(1), sigma_.size(2))], dim=0)
-
-        # transform the model predictions back to the original scale
+        
+        # Transform the model predictions back to the original scale
         mu = min_[:, - num_outputs:] + (max_[:, - num_outputs:] - min_[:, - num_outputs:]) * mu.detach().cpu().numpy()
         sigma = (max_[:, - num_outputs:] - min_[:, - num_outputs:]) * sigma.detach().cpu().numpy()
-
-        # organize the model predictions in a data frame
+        
+        # Organize the model predictions in a data frame
         prediction = {}
         for i in range(num_outputs):
             prediction[output_names[i] + '_mean'] = mu[:, i]

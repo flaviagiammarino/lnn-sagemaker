@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -21,7 +19,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-def _set_seed(use_cuda):
+def set_seed(use_cuda):
     '''
     Fix the random seed, for reproducibility.
     '''
@@ -33,16 +31,28 @@ def _set_seed(use_cuda):
         torch.cuda.manual_seed(random_seed)
 
 
-def _get_data(data_dir):
+def get_data(data_dir):
     '''
-    Load the data.
+    Load the data from the CSV files.
     '''
     return pd.concat([pd.read_csv(os.path.join(data_dir, f)) for f in os.listdir(data_dir)], axis=0, ignore_index=True)
 
 
-def _get_dataloader(data, timespans, input_length, output_length, sequence_stride, num_outputs, batch_size, **kwargs):
+def get_dataloader(
+    data,
+    timespans,
+    input_length,
+    output_length,
+    sequence_stride,
+    num_outputs,
+    batch_size,
+    **kwargs
+):
     '''
     Build the training dataloader.
+    
+    Note: In this case consecutive sequences can be overlapping
+    depending on the value of the `sequence_stride` parameter.
     '''
     t = []
     x = []
@@ -72,9 +82,19 @@ def _get_dataloader(data, timespans, input_length, output_length, sequence_strid
     )
 
 
-def _get_validation_dataloader(data, timespans, input_length, output_length, num_outputs, batch_size, **kwargs):
+def get_validation_dataloader(
+    data,
+    timespans,
+    input_length,
+    output_length,
+    num_outputs,
+    batch_size,
+    **kwargs
+):
     '''
     Build the validation dataloader.
+    
+    Note: In this case consecutive sequences are non-overlapping.
     '''
     t = []
     x = []
@@ -104,7 +124,7 @@ def _get_validation_dataloader(data, timespans, input_length, output_length, num
     )
 
 
-def _get_scalers(x):
+def get_scalers(x):
     '''
     Calculate the scaling parameters.
     '''
@@ -113,28 +133,34 @@ def _get_scalers(x):
     return min_, max_
 
 
-def _mean_squared_error(y_true, y_pred):
+def mean_squared_error(y_true, y_pred):
     '''
     Calculate the mean squared error.
     '''
     return torch.mean(torch.square(y_true - y_pred))
 
 
-def _mean_absolute_error(y_true, y_pred):
+def mean_absolute_error(y_true, y_pred):
     '''
     Calculate the mean absolute error.
     '''
     return torch.mean(torch.abs(y_true - y_pred))
 
 
-def _negative_log_likelihood(y, mu, sigma):
+def negative_log_likelihood(y, mu, sigma):
     '''
     Calculate the negative log-likelihood.
     '''
     return torch.mean(torch.sum(0.5 * torch.tensor(np.log(2 * np.pi)) + 0.5 * torch.log(sigma ** 2) + 0.5 * ((y - mu) ** 2) / (sigma ** 2), dim=-1))
 
 
-def _train(model, dataloader, optimizer, scheduler, device):
+def training_step(
+    model,
+    dataloader,
+    optimizer,
+    scheduler,
+    device
+):
     '''
     Run a training step.
     '''
@@ -143,13 +169,17 @@ def _train(model, dataloader, optimizer, scheduler, device):
         t, x, y = t.to(device), x.to(device), y.to(device)
         optimizer.zero_grad()
         mu, sigma = model(x, t)
-        loss = _negative_log_likelihood(y, mu, sigma)
+        loss = negative_log_likelihood(y, mu, sigma)
         loss.backward()
         optimizer.step()
     scheduler.step()
 
 
-def _validate(model, dataloader, device):
+def validation_step(
+    model,
+    dataloader,
+    device
+):
     '''
     Run a validation step.
     '''
@@ -164,8 +194,8 @@ def _validate(model, dataloader, device):
         y_pred.append(yhat.reshape(yhat.shape[0] * yhat.shape[1], yhat.shape[2]))
     y_true = torch.cat(y_true, dim=0)
     y_pred = torch.cat(y_pred, dim=0)
-    mse = _mean_squared_error(y_true, y_pred).item()
-    mae = _mean_absolute_error(y_true, y_pred).item()
+    mse = mean_squared_error(y_true, y_pred).item()
+    mae = mean_absolute_error(y_true, y_pred).item()
     return mse, mae
 
 
@@ -173,11 +203,10 @@ def fine_tune(args):
     '''
     Continue training an existing model.
     '''
-    # extract the environment configuration
+    # Extract the environment configuration
     use_cuda = torch.cuda.is_available()
     use_data_parallel = torch.cuda.device_count() > 1
     is_multi_channel = args.test_data_dir is not None
-    
     if use_cuda:
         device = torch.device("cuda:0")
         kwargs = {"num_workers": 1, "pin_memory": True}
@@ -187,7 +216,7 @@ def fine_tune(args):
         device = torch.device("cpu")
         kwargs = {}
     
-    # load the pre-trained model
+    # Load the pre-trained model
     print("\n")
     print("--------------------------------------")
     print("Loading the pre-trained model.")
@@ -214,8 +243,8 @@ def fine_tune(args):
     print("--------------------------------------")
     print(f"Initial learning rate: {optimizer_state_dict['param_groups'][0]['lr']}")
     print("--------------------------------------")
-
-    # extract the hyperparameters
+    
+    # Extract the input parameters
     timespan_names = params["timespan_names"]
     input_names = params["input_names"]
     output_names = params["output_names"]
@@ -226,8 +255,8 @@ def fine_tune(args):
     input_length = params["input_length"]
     output_length = params["output_length"]
     
-    # load the training data
-    train_data = _get_data(args.train_data_dir)
+    # Load the training data
+    train_data = get_data(args.train_data_dir)
     print("\n")
     print("--------------------------------------")
     print(f"Training on {train_data.shape[0]} samples.")
@@ -239,44 +268,44 @@ def fine_tune(args):
     print(f"Targets: {output_names}")
     print("--------------------------------------")
     print("\n")
-
-    # extract the timespans
+    
+    # Extract the timespans
     if len(timespan_names):
         train_timespans = train_data.loc[:, timespan_names].values
     else:
         train_timespans = None
     
-    # reorder the columns
+    # Reorder the columns
     train_data = train_data[input_names + output_names].values
-
-    # scale the data
-    train_data = (train_data - min_) / (max_ - min_)
-
-    if is_multi_channel:
     
-        # load the test data
-        test_data = _get_data(args.test_data_dir)
+    # Scale the data
+    train_data = (train_data - min_) / (max_ - min_)
+    
+    if is_multi_channel:
+        
+        # Load the test data
+        test_data = get_data(args.test_data_dir)
         print("\n")
         print("--------------------------------------")
         print(f"Validating on {test_data.shape[0]} samples.")
         print("--------------------------------------")
         print("\n")
-    
-        # extract the timespans
+        
+        # Extract the timespans
         if len(timespan_names):
             test_timespans = test_data.loc[:, timespan_names].values
         else:
             test_timespans = None
-
-        # reorder the columns
+        
+        # Reorder the columns
         test_data = test_data[input_names + output_names].values
-    
-        # scale the data
+        
+        # Scale the data
         test_data = (test_data - min_) / (max_ - min_)
-
-    # build the dataloaders
-    _set_seed(use_cuda)
-    loader = _get_dataloader(
+    
+    # Build the training dataloader
+    set_seed(use_cuda)
+    dataloader = get_dataloader(
         train_data,
         train_timespans,
         input_length,
@@ -286,8 +315,9 @@ def fine_tune(args):
         args.batch_size,
         **kwargs
     )
-
-    train_loader = _get_validation_dataloader(
+    
+    # Build the evaluation dataloaders
+    training_dataloader = get_validation_dataloader(
         train_data,
         train_timespans,
         input_length,
@@ -296,9 +326,8 @@ def fine_tune(args):
         args.batch_size,
         **kwargs
     )
-
     if is_multi_channel:
-        test_loader = _get_validation_dataloader(
+        test_dataloader = get_validation_dataloader(
             test_data,
             test_timespans,
             input_length,
@@ -307,19 +336,17 @@ def fine_tune(args):
             args.batch_size,
             **kwargs
         )
-        
-    # train the model
+    
+    # Train the model
     print("\n")
     print("--------------------------------------")
     print("Training the model.")
-    _set_seed(use_cuda)
+    set_seed(use_cuda)
     for epoch in range(args.epochs):
-        # train the model
-        _train(model, loader, optimizer, scheduler, device)
-        # validate the model
-        train_mse, train_mae = _validate(model, train_loader, device)
+        training_step(model, dataloader, optimizer, scheduler, device)
+        train_mse, train_mae = validation_step(model, training_dataloader, device)
         if is_multi_channel:
-            valid_mse, valid_mae = _validate(model, test_loader, device)
+            valid_mse, valid_mae = validation_step(model, test_dataloader, device)
             print(
                 f'epoch: {format(1 + epoch, ".0f")} '
                 f'train_mse: {format(train_mse, ",.8f")} '
@@ -333,8 +360,8 @@ def fine_tune(args):
                 f'train_mse: {format(train_mse, ",.8f")} '
                 f'train_mae: {format(train_mae, ",.8f")}'
             )
-
-    # score the model
+    
+    # Score the model
     print("\n")
     print("--------------------------------------")
     print("Scoring the model.")
@@ -345,8 +372,8 @@ def fine_tune(args):
         print("valid:mae " + format(valid_mae, ',.8f'))
     print("--------------------------------------")
     print("\n")
-
-    # save the model
+    
+    # Save the model
     model.eval()
     path = os.path.join(args.model_dir, "model.pth")
     model_state_dict = model.state_dict()
@@ -365,11 +392,10 @@ def train(args):
     '''
     Train the model.
     '''
-    # extract the environment configuration
+    # Extract the environment configuration
     use_cuda = torch.cuda.is_available()
     use_data_parallel = torch.cuda.device_count() > 1
     is_multi_channel = args.test_data_dir is not None
-    
     if use_cuda:
         device = torch.device("cuda:0")
         kwargs = {"num_workers": 1, "pin_memory": True}
@@ -379,15 +405,15 @@ def train(args):
         device = torch.device("cpu")
         kwargs = {}
     
-    # load the training data
-    train_data = _get_data(args.train_data_dir)
+    # Load the training data
+    train_data = get_data(args.train_data_dir)
     print("\n")
     print("--------------------------------------")
     print(f"Training on {train_data.shape[0]} samples.")
     print("--------------------------------------")
     print("\n")
     
-    # extract the variable names
+    # Extract the variable names
     timespan_names = [s for s in train_data.columns if s == "ts"]
     input_names = [s for s in train_data.columns if s.startswith("x")]
     output_names = [s for s in train_data.columns if s.startswith("y")]
@@ -399,48 +425,48 @@ def train(args):
     print("--------------------------------------")
     print("\n")
     
-    # calculate the number of variables
+    # Calculate the number of variables
     num_inputs = len(input_names)
     num_outputs = len(output_names)
     
-    # extract the timespans
+    # Extract the timespans
     if len(timespan_names):
         train_timespans = train_data.loc[:, timespan_names].values
     else:
         train_timespans = None
-        
-    # reorder the columns
+    
+    # Reorder the columns
     train_data = train_data[input_names + output_names].values
     
-    # calculate the scaling parameters
-    min_, max_ = _get_scalers(train_data)
+    # Calculate the scaling parameters
+    min_, max_ = get_scalers(train_data)
     
-    # scale the data
+    # Scale the data
     train_data = (train_data - min_) / (max_ - min_)
     
     if is_multi_channel:
-    
-        # load the test data
-        test_data = _get_data(args.test_data_dir)
+        
+        # Load the test data
+        test_data = get_data(args.test_data_dir)
         print("\n")
         print("--------------------------------------")
         print(f"Validating on {test_data.shape[0]} samples.")
         print("--------------------------------------")
         print("\n")
         
-        # extract the timespans
+        # Extract the timespans
         if len(timespan_names):
             test_timespans = test_data.loc[:, timespan_names].values
         else:
             test_timespans = None
-
-        # reorder the columns
+        
+        # Reorder the columns
         test_data = test_data[input_names + output_names].values
         
-        # scale the data
+        # Scale the data
         test_data = (test_data - min_) / (max_ - min_)
     
-    # extract the hyperparameters
+    # Extract the hyperparameters
     params = dict(
         timespan_names=timespan_names,
         input_names=input_names,
@@ -462,11 +488,11 @@ def train(args):
         use_ltc=int(args.use_ltc) == 1,
     )
     
-    # build the model
+    # Build the model
     print("\n")
     print("--------------------------------------")
     print("Building the model.")
-    _set_seed(use_cuda)
+    set_seed(use_cuda)
     model = Model(**params)
     model.to(device)
     print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
@@ -476,10 +502,10 @@ def train(args):
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, args.lr_decay)
     print("--------------------------------------")
     print("\n")
-
-    # build the dataloaders
-    _set_seed(use_cuda)
-    loader = _get_dataloader(
+    
+    # Build the training dataloader
+    set_seed(use_cuda)
+    dataloader = get_dataloader(
         train_data,
         train_timespans,
         args.context_length,
@@ -489,8 +515,9 @@ def train(args):
         args.batch_size,
         **kwargs
     )
-
-    train_loader = _get_validation_dataloader(
+    
+    # Build the evaluation dataloaders
+    training_dataloader = get_validation_dataloader(
         train_data,
         train_timespans,
         args.context_length,
@@ -499,9 +526,8 @@ def train(args):
         args.batch_size,
         **kwargs
     )
-
     if is_multi_channel:
-        test_loader = _get_validation_dataloader(
+        test_dataloader = get_validation_dataloader(
             test_data,
             test_timespans,
             args.context_length,
@@ -510,19 +536,17 @@ def train(args):
             args.batch_size,
             **kwargs
         )
-        
-    # train the model
+    
+    # Train the model
     print("\n")
     print("--------------------------------------")
     print("Training the model.")
-    _set_seed(use_cuda)
+    set_seed(use_cuda)
     for epoch in range(args.epochs):
-        # train the model
-        _train(model, loader, optimizer, scheduler, device)
-        # validate the model
-        train_mse, train_mae = _validate(model, train_loader, device)
+        training_step(model, dataloader, optimizer, scheduler, device)
+        train_mse, train_mae = validation_step(model, training_dataloader, device)
         if is_multi_channel:
-            valid_mse, valid_mae = _validate(model, test_loader, device)
+            valid_mse, valid_mae = validation_step(model, test_dataloader, device)
             print(
                 f'epoch: {format(1 + epoch, ".0f")}, '
                 f'train_mse: {format(train_mse, ",.8f")} '
@@ -536,8 +560,8 @@ def train(args):
                 f'train_mse: {format(train_mse, ",.8f")} '
                 f'train_mae: {format(train_mae, ",.8f")}'
             )
-            
-    # score the model
+    
+    # Score the model
     print("\n")
     print("--------------------------------------")
     print("Scoring the model.")
@@ -549,7 +573,7 @@ def train(args):
     print("--------------------------------------")
     print("\n")
     
-    # save the model
+    # Save the model
     model.eval()
     path = os.path.join(args.model_dir, "model.pth")
     model_state_dict = model.state_dict()
@@ -567,12 +591,12 @@ def train(args):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-
+    
     parser.add_argument(
         "--context-length",
         type=int,
     )
-
+    
     parser.add_argument(
         "--prediction-length",
         type=int,
@@ -649,28 +673,28 @@ if __name__ == "__main__":
     )
     
     env = environment.Environment()
-
+    
     if len(env.hosts) > 1:
         raise ValueError("Distributed training is not supported.")
-
+    
     parser.add_argument(
         "--model-dir",
         type=str,
         default=env.model_dir
     )
-
+    
     parser.add_argument(
         "--train-data-dir",
         type=str,
         default=env.channel_input_dirs["training"]
     )
-
+    
     parser.add_argument(
         "--test-data-dir",
         type=str,
         default=env.channel_input_dirs["validation"] if "validation" in env.channel_input_dirs else None
     )
-
+    
     parser.add_argument(
         "--model",
         type=str,

@@ -1,7 +1,7 @@
+# Adapted from https://github.com/raminmh/CfC
 import torch
 import torch.nn as nn
 import numpy as np
-
 
 class Model(torch.nn.Module):
     
@@ -499,9 +499,6 @@ class LTCCell(nn.Module):
         # Regularly sampled mode (elapsed time = 1 second)
         ts = ts.view((-1, 1))
         inputs = self._map_inputs(input)
-
         next_state = self._ode_solver(inputs, hx, ts)
-
         # outputs = self._map_outputs(next_state)
-
         return next_state
