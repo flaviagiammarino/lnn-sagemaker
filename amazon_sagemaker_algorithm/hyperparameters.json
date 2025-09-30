@@ -1,0 +1,209 @@
+[
+	{
+		"Name": "context-length",
+		"Description": "The length of the input sequences",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "500"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "prediction-length",
+		"Description": "The length of the output sequences",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "500"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "sequence-stride",
+		"Description": "The period between consecutive output sequences",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "500"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "backbone-layers",
+		"Description": "The number of hidden layers of the backbone neural network",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "100"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "backbone-units",
+		"Description": "The number of hidden units of the backbone neural network",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "1024"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "backbone-activation",
+		"Description": "The activation function of the backbone neural network",
+		"Type": "Categorical",
+		"Range": {
+			"CategoricalParameterRangeSpecification": {
+			    "Values": ["silu", "relu", "tanh", "gelu", "lecun"]
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "backbone-dropout",
+		"Description": "The dropout rate of the backbone neural network",
+		"Type": "Continuous",
+		"Range": {
+			"ContinuousParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "hidden-size",
+		"Description": "The number of hidden units of the neural network heads",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "1024"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "minimal",
+		"Description": "If set to 1, the model will use the CfC direct solution",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "no-gate",
+		"Description": "If set to 1, the model will use a CfC without the (1 - sigmoid) part",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "use-ltc",
+		"Description": "If set to 1, the model will use an LTC instead of a CfC",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "use-mixed",
+		"Description": "If set to 1, the model will mix the CfC RNN-state with an LSTM",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "lr",
+		"Description": "The learning rate used for training",
+		"Type": "Continuous",
+		"Range": {
+			"ContinuousParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "lr-decay",
+		"Description": "The decay factor applied to the learning rate",
+		"Type": "Continuous",
+		"Range": {
+			"ContinuousParameterRangeSpecification": {
+				"MinValue": "0",
+				"MaxValue": "1"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "batch-size",
+		"Description": "The batch size used for training",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "2048"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	},
+	{
+		"Name": "epochs",
+		"Description": "The number of training epochs",
+		"Type": "Integer",
+		"Range": {
+			"IntegerParameterRangeSpecification": {
+				"MinValue": "1",
+				"MaxValue": "100000"
+			}
+		},
+		"IsTunable": true,
+		"IsRequired": true
+	}
+]
