@@ -1,7 +1,7 @@
 # Liquid Neural Networks (LNNs) SageMaker Algorithm
 This algorithm performs time series forecasting with Liquid Neural Networks (LNNs). 
 It implements both training and inference from CSV data and supports both CPU and GPU instances. 
-The training and inference Docker images were built by extending the PyTorch 2.1.0 Python 3.10 SageMaker containers. 
+The training and inference Docker images are built by extending the PyTorch 2.1.0 Python 3.10 SageMaker containers. 
 The Docker images include [software licensed under the Apache License 2.0](https://github.com/raminmh/CfC).
 The algorithm can be used for both univariate and multivariate time series and supports the inclusion of external features.
 
